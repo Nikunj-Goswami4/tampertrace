@@ -52,6 +52,10 @@ class PageAnalysis(BaseModel):
         le=1.0,
         description="Weighted ensemble score.",
     )
+    original_image_b64: Optional[str] = Field(
+        None,
+        description="Base64-encoded JPEG of the original page image.",
+    )
     heatmap_base64: Optional[str] = Field(
         None,
         description="Base64-encoded PNG anomaly heatmap (from TruFor or ELA).",

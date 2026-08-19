@@ -16,22 +16,24 @@ export function HeatmapOverlay({ originalImageSrc, heatmapBase64, isPdf }: Heatm
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2 transition-colors duration-300">
           <Layers className="w-5 h-5 text-blue-500" />
           Localization Heatmap
         </h3>
-
-        {heatmapSrc && !isPdf && (
-          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+        
+        {heatmapSrc && originalImageSrc && (
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400 print:hidden">
             Drag slider to reveal tamper map
           </div>
         )}
       </div>
 
-      <div className="relative w-full max-w-4xl mx-auto rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center min-h-[300px] select-none">
-        {/* Base Image (if not PDF) */}
-        {!isPdf && originalImageSrc && (
+      {/* Screen View (Interactive Slider) */}
+      <div className="relative w-full max-w-4xl mx-auto rounded-2xl overflow-hidden bg-slate-100/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 shadow-sm flex items-center justify-center min-h-[300px] select-none backdrop-blur-sm transition-colors duration-300 print:hidden">
+        {/* Base Image */}
+        {originalImageSrc && (
           <img
             src={originalImageSrc}
             alt="Original document"
@@ -39,8 +41,8 @@ export function HeatmapOverlay({ originalImageSrc, heatmapBase64, isPdf }: Heatm
           />
         )}
 
-        {/* PDF Placeholder if no heatmap */}
-        {isPdf && !heatmapSrc && (
+        {/* PDF Placeholder if no heatmap and no original image */}
+        {!originalImageSrc && isPdf && !heatmapSrc && (
           <div className="p-8 text-center text-slate-500 dark:text-slate-400">
             PDF Document Analyzed. No heatmap generated.
           </div>
@@ -51,16 +53,16 @@ export function HeatmapOverlay({ originalImageSrc, heatmapBase64, isPdf }: Heatm
           <div
             className={cn(
               "absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center",
-              isPdf ? "relative" : ""
+              !originalImageSrc ? "relative" : ""
             )}
-            style={!isPdf ? { clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` } : undefined}
+            style={originalImageSrc ? { clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` } : undefined}
           >
             <img
               src={heatmapSrc}
               alt="Tamper Heatmap"
               className={cn(
                 "w-full h-auto object-contain max-h-[70vh]",
-                (!isPdf && originalImageSrc) ? "absolute" : "relative",
+                originalImageSrc ? "absolute" : "relative",
                 "opacity-80 mix-blend-multiply dark:mix-blend-screen"
               )}
             />
@@ -68,7 +70,7 @@ export function HeatmapOverlay({ originalImageSrc, heatmapBase64, isPdf }: Heatm
         )}
 
         {/* Slider Handle UI */}
-        {heatmapSrc && !isPdf && originalImageSrc && (
+        {heatmapSrc && originalImageSrc && (
           <>
             <div
               className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] pointer-events-none z-10"
@@ -97,11 +99,38 @@ export function HeatmapOverlay({ originalImageSrc, heatmapBase64, isPdf }: Heatm
           </>
         )}
 
-        {!heatmapSrc && !isPdf && originalImageSrc && (
+        {!heatmapSrc && originalImageSrc && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
             <span className="bg-white dark:bg-slate-800 px-4 py-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700">
               No anomaly heatmap available for this document
             </span>
+          </div>
+        )}
+      </div>
+
+      {/* Print View (Static Side-by-Side or Stacked) */}
+      <div className="hidden print:flex flex-col gap-6 w-full mt-4">
+        {originalImageSrc && (
+          <div className="flex flex-col gap-2">
+            <h4 className="font-semibold text-slate-800 text-sm uppercase tracking-wider">Original Document</h4>
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <img src={originalImageSrc} alt="Original document" className="w-full h-auto object-contain max-h-[40vh]" />
+            </div>
+          </div>
+        )}
+        
+        {heatmapSrc && (
+          <div className="flex flex-col gap-2">
+            <h4 className="font-semibold text-slate-800 text-sm uppercase tracking-wider">Anomaly Heatmap</h4>
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <img src={heatmapSrc} alt="Tamper Heatmap" className="w-full h-auto object-contain max-h-[40vh]" />
+            </div>
+          </div>
+        )}
+
+        {!originalImageSrc && isPdf && !heatmapSrc && (
+          <div className="p-8 text-center text-slate-500 border border-slate-200 rounded-xl">
+            PDF Document Analyzed. No heatmap generated.
           </div>
         )}
       </div>

@@ -20,15 +20,32 @@ const SIGNAL_META: Record<string, { label: string, icon: React.ElementType, desc
   ocr: { label: 'OCR Typography', icon: Type, desc: 'Text bounding box inconsistencies.' },
 };
 
+const truncateLongStrings = (key: string, value: unknown) => {
+  if (typeof value === 'string' && value.length > 200) {
+    return `<string omitted for brevity (${value.length} characters)>`;
+  }
+  return value;
+};
+
 export function SignalBreakdown({ signals }: SignalBreakdownProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 transition-colors duration-300">Forensic Signals</h3>
-      <Accordion.Root type="multiple" className="grid gap-3">
+      {/* Screen View (Interactive Accordions) */}
+      <div className="print:hidden">
+        <Accordion.Root type="multiple" className="grid gap-3">
+          {signals.map((sig) => (
+            <SignalCard key={sig.name} signal={sig} />
+          ))}
+        </Accordion.Root>
+      </div>
+
+      {/* Print View (Static List) */}
+      <div className="hidden print:flex flex-col gap-4">
         {signals.map((sig) => (
-          <SignalCard key={sig.name} signal={sig} />
+          <PrintSignalCard key={`print-${sig.name}`} signal={sig} />
         ))}
-      </Accordion.Root>
+      </div>
     </div>
   );
 }
@@ -88,11 +105,38 @@ function SignalCard({ signal }: { signal: SignalResult }) {
         <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 transition-colors duration-300">
           <div className="mt-4 p-4 bg-slate-800 dark:bg-black/40 rounded-lg overflow-x-auto border border-slate-700/50">
             <pre className="text-xs text-slate-300 dark:text-slate-400 font-mono">
-              {JSON.stringify(signal.details, null, 2)}
+              {JSON.stringify(signal.details, truncateLongStrings, 2)}
             </pre>
           </div>
         </div>
       </Accordion.Content>
     </Accordion.Item>
+  );
+}
+
+function PrintSignalCard({ signal }: { signal: SignalResult }) {
+  const meta = SIGNAL_META[signal.name] || { label: signal.name, icon: Activity, desc: 'Analysis module' };
+  const Icon = meta.icon;
+  const scorePct = Math.round(signal.score * 100);
+
+  return (
+    <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-4 break-inside-avoid">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5 text-slate-600" />
+          <div>
+            <h4 className="font-semibold text-slate-900">{meta.label}</h4>
+            <p className="text-sm text-slate-500">{meta.desc}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-bold text-slate-900">{scorePct}%</div>
+          <div className="text-xs font-medium text-slate-500 uppercase">Anomaly</div>
+        </div>
+      </div>
+      <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg text-xs font-mono text-slate-700 whitespace-pre-wrap break-all">
+        {JSON.stringify(signal.details, truncateLongStrings, 2)}
+      </div>
+    </div>
   );
 }

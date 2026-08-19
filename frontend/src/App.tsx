@@ -28,7 +28,22 @@ function App() {
   }, [isDarkMode]);
 
   const handleDownloadPdf = () => {
-    window.print();
+    // Force light mode for a clean, legible PDF report
+    const wasDark = document.documentElement.classList.contains('dark');
+    if (wasDark) {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    }
+    
+    // Give the DOM a moment to re-render without dark mode classes
+    setTimeout(() => {
+      window.print();
+      // Restore dark mode if it was active
+      if (wasDark) {
+        document.documentElement.classList.add('dark');
+        setIsDarkMode(true);
+      }
+    }, 150);
   };
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -195,45 +210,68 @@ function App() {
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="space-y-12"
             >
-              <div className="flex flex-col md:flex-row gap-8 items-start">
-                {/* Left Column: Summary */}
-                <div className="w-full md:w-1/3 space-y-8 sticky top-24">
-                  <VerdictBadge
-                    verdict={(analysisResult as any).pages[0].verdict}
-                    confidence={(analysisResult as any).pages[0].confidence_pct}
-                  />
+              <div className="flex flex-col gap-16">
+                {(analysisResult as any).pages.slice(0, 3).map((pageData: any, idx: number) => (
+                  <div key={idx} className="flex flex-col md:flex-row gap-8 items-start relative">
+                    {/* Left Column: Summary */}
+                    <div className="w-full md:w-1/3 space-y-8 md:sticky md:top-24">
+                      {((analysisResult as any).total_pages > 1) && (
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                          Page {idx + 1}
+                        </h2>
+                      )}
+                      <VerdictBadge
+                        verdict={pageData.verdict}
+                        confidence={pageData.confidence_pct}
+                      />
 
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm transition-colors duration-300">
-                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2 text-lg">Document Info</h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                        <span className="text-slate-500 dark:text-slate-400">Filename</span>
-                        <span className="font-medium text-slate-900 dark:text-slate-200 truncate max-w-[150px]" title={String((analysisResult as any).filename)}>
-                          {String((analysisResult as any).filename)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                        <span className="text-slate-500 dark:text-slate-400">Pages</span>
-                        <span className="font-medium text-slate-900 dark:text-slate-200">{String((analysisResult as any).total_pages)}</span>
-                      </div>
-                      <div className="flex justify-between pb-1">
-                        <span className="text-slate-500 dark:text-slate-400">Fused Score</span>
-                        <span className="font-medium text-slate-900 dark:text-slate-200">{Number((analysisResult as any).pages[0].fused_score).toFixed(3)}</span>
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm transition-colors duration-300">
+                        <h3 className="font-semibold text-slate-900 dark:text-white mb-2 text-lg">
+                          {((analysisResult as any).total_pages > 1) ? `Page ${idx + 1} Info` : 'Document Info'}
+                        </h3>
+                        <div className="space-y-3 text-sm">
+                          {idx === 0 && (
+                            <>
+                              <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/50 pb-3 gap-4">
+                                <span className="text-slate-500 dark:text-slate-400 shrink-0">Filename</span>
+                                <span className="font-medium text-slate-900 dark:text-slate-200 break-all text-right" title={String((analysisResult as any).filename)}>
+                                  {String((analysisResult as any).filename)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <span className="text-slate-500 dark:text-slate-400">Total Pages</span>
+                                <span className="font-medium text-slate-900 dark:text-slate-200">{String((analysisResult as any).total_pages)}</span>
+                              </div>
+                            </>
+                          )}
+                          <div className="flex justify-between pb-1">
+                            <span className="text-slate-500 dark:text-slate-400">Fused Score</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-200">{Number(pageData.fused_score).toFixed(3)}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Right Column: Deep Dive */}
+                    <div className="w-full md:w-2/3 space-y-12">
+                      <HeatmapOverlay
+                        originalImageSrc={pageData.original_image_b64 ? `data:image/jpeg;base64,${pageData.original_image_b64}` : previewUrl}
+                        heatmapBase64={pageData.heatmap_base64}
+                        isPdf={file?.type === 'application/pdf'}
+                      />
+
+                      <SignalBreakdown signals={pageData.signals} />
+                    </div>
                   </div>
-                </div>
+                ))}
 
-                {/* Right Column: Deep Dive */}
-                <div className="w-full md:w-2/3 space-y-12">
-                  <HeatmapOverlay
-                    originalImageSrc={previewUrl}
-                    heatmapBase64={(analysisResult as any).pages[0].heatmap_base64}
-                    isPdf={file?.type === 'application/pdf'}
-                  />
-
-                  <SignalBreakdown signals={(analysisResult as any).pages[0].signals} />
-                </div>
+                {((analysisResult as any).total_pages > 3) && (
+                  <div className="text-center p-6 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 mt-8">
+                    <p className="text-slate-600 dark:text-slate-400 font-medium">
+                      Showing the first 3 pages of {(analysisResult as any).total_pages} total pages to keep the report concise.
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

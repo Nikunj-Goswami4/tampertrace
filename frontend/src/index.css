@@ -27,3 +27,48 @@
     animation: slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1);
   }
 }
+
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .dark body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  /* Hide UI elements that shouldn't be printed */
+  header, footer, button, .toaster {
+    display: none !important;
+  }
+
+  /* Reset dark mode borders/backgrounds for print */
+  .dark .bg-slate-900, .dark .bg-slate-950, .dark .bg-slate-800 {
+    background-color: transparent !important;
+  }
+  
+  .dark .text-white, .dark .text-slate-100, .dark .text-slate-200 {
+    color: black !important;
+  }
+
+  .dark .text-slate-300, .dark .text-slate-400 {
+    color: #475569 !important; /* slate-600 */
+  }
+
+  .dark .border-slate-800, .dark .border-slate-700 {
+    border-color: #e2e8f0 !important; /* slate-200 */
+  }
+
+  /* Ensure the container takes full width and prevents awkward page breaks */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .border {
+    break-inside: avoid;
+  }
+}

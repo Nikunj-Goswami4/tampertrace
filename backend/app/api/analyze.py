@@ -116,11 +116,16 @@ def _analyse_page(
         ),
     ]
 
+    import base64
+    success, buffer = cv2.imencode(".jpg", image)
+    original_b64 = base64.b64encode(buffer).decode("utf-8") if success else None
+
     return PageAnalysis(
         page_number=page_num,
         verdict=fusion["verdict"],
         confidence_pct=fusion["confidence_pct"],
         fused_score=fusion["fused_score"],
+        original_image_b64=original_b64,
         heatmap_base64=heatmap,
         signals=signals,
     )
