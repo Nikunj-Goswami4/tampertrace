@@ -11,3 +11,7 @@ paddleocr
 pydantic
 pydantic-settings
 scikit-learn
+numpy
+piexif
+yacs
+pytest
