@@ -7,7 +7,7 @@ torchvision
 opencv-python-headless
 Pillow
 PyMuPDF
-paddleocr
+rapidocr-onnxruntime
 pydantic
 pydantic-settings
 scikit-learn
@@ -15,3 +15,4 @@ numpy
 piexif
 yacs
 pytest
+python-multipart

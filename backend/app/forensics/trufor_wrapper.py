@@ -68,7 +68,7 @@ def _load_model(device: str) -> torch.nn.Module:
 
         model = ConfCMX(cfg=cfg)
 
-        checkpoint = torch.load(str(_WEIGHTS_PATH), map_location=torch.device(device))
+        checkpoint = torch.load(str(_WEIGHTS_PATH), map_location=torch.device(device), weights_only=False)
         model.load_state_dict(checkpoint["state_dict"])
         model = model.to(device)
         model.eval()

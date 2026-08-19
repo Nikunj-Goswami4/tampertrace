@@ -1,0 +1,12 @@
+{
+  "weights": {
+    "trufor": 0.50,
+    "ela": 0.25,
+    "copy_move": 0.15,
+    "ocr_exif": 0.10
+  },
+  "thresholds": {
+    "authentic_below": 0.30,
+    "tampered_above": 0.65
+  }
+}

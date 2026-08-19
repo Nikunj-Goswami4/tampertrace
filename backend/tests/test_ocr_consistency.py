@@ -12,13 +12,13 @@ class TestCheckOcrConsistency:
     """Unit tests for the ``check_ocr_consistency`` pure function."""
 
     def test_return_keys_blank_image(self) -> None:
-        """A blank white image should produce zero boxes (PaddleOCR finds
-        nothing).  We mock PaddleOCR to avoid the heavyweight import."""
+        """A blank white image should produce zero boxes (RapidOCR finds
+        nothing).  We mock RapidOCR to avoid the heavyweight import."""
         mock_ocr_instance = MagicMock()
-        mock_ocr_instance.ocr.return_value = [None]
+        mock_ocr_instance.return_value = (None, None)
 
         with patch(
-            "app.forensics.ocr_consistency.PaddleOCR",
+            "app.forensics.ocr_consistency.RapidOCR",
             return_value=mock_ocr_instance,
         ):
             result = check_ocr_consistency(
@@ -36,13 +36,13 @@ class TestCheckOcrConsistency:
             y = 50 + i * 30
             bbox = [[10, y], [200, y], [200, y + 20], [10, y + 20]]
             text = "Hello World"
-            detections.append((bbox, (text, 0.95)))
+            detections.append([bbox, text, 0.95])
 
         mock_ocr = MagicMock()
-        mock_ocr.ocr.return_value = [detections]
+        mock_ocr.return_value = (detections, None)
 
         with patch(
-            "app.forensics.ocr_consistency.PaddleOCR",
+            "app.forensics.ocr_consistency.RapidOCR",
             return_value=mock_ocr,
         ):
             result = check_ocr_consistency(
@@ -60,17 +60,17 @@ class TestCheckOcrConsistency:
         for i in range(4):
             y = 50 + i * 30
             bbox = [[10, y], [200, y], [200, y + 20], [10, y + 20]]
-            detections.append((bbox, ("Normal text here", 0.90)))
+            detections.append([bbox, "Normal text here", 0.90])
 
         # 1 anomalous box — very narrow with long text → tiny spacing
         bbox_outlier = [[10, 300], [30, 300], [30, 320], [10, 320]]
-        detections.append((bbox_outlier, ("This is way too much text", 0.80)))
+        detections.append([bbox_outlier, "This is way too much text", 0.80])
 
         mock_ocr = MagicMock()
-        mock_ocr.ocr.return_value = [detections]
+        mock_ocr.return_value = (detections, None)
 
         with patch(
-            "app.forensics.ocr_consistency.PaddleOCR",
+            "app.forensics.ocr_consistency.RapidOCR",
             return_value=mock_ocr,
         ):
             result = check_ocr_consistency(
@@ -102,13 +102,13 @@ class TestCheckOcrConsistency:
         for i in range(5):
             y = 50 + i * 30
             bbox = [[10, y], [200, y], [200, y + 20], [10, y + 20]]
-            detections.append((bbox, ("sample text", 0.90)))
+            detections.append([bbox, "sample text", 0.90])
 
         mock_ocr = MagicMock()
-        mock_ocr.ocr.return_value = [detections]
+        mock_ocr.return_value = (detections, None)
 
         with patch(
-            "app.forensics.ocr_consistency.PaddleOCR",
+            "app.forensics.ocr_consistency.RapidOCR",
             return_value=mock_ocr,
         ):
             result = check_ocr_consistency(

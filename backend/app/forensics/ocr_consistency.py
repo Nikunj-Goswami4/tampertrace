@@ -1,7 +1,7 @@
 """
 OCR consistency analysis.
 
-Runs PaddleOCR to extract text bounding boxes, then performs statistical
+Runs RapidOCR to extract text bounding boxes, then performs statistical
 outlier detection (IQR method) on character spacing and baseline heights
 to flag regions with anomalous typographic properties.
 
@@ -15,9 +15,9 @@ from typing import Any, Dict, List
 import numpy as np
 
 try:
-    from paddleocr import PaddleOCR  # type: ignore[import-untyped]
+    from rapidocr_onnxruntime import RapidOCR
 except ImportError:  # pragma: no cover
-    PaddleOCR = None  # type: ignore[assignment,misc]
+    RapidOCR = None  # type: ignore[assignment,misc]
 
 
 
@@ -32,7 +32,7 @@ def _iqr_bounds(values: np.ndarray) -> tuple:
 def _bbox_centre_y(bbox: list) -> float:
     """Compute the vertical centre of a quadrilateral bounding box.
 
-    PaddleOCR returns each bbox as ``[[x0,y0],[x1,y1],[x2,y2],[x3,y3]]``.
+    RapidOCR returns each bbox as ``[[x0,y0],[x1,y1],[x2,y2],[x3,y3]]``.
     """
     ys = [pt[1] for pt in bbox]
     return float(np.mean(ys))
@@ -55,7 +55,7 @@ def check_ocr_consistency(
     image : np.ndarray
         BGR image (OpenCV convention).
     lang : str
-        PaddleOCR language code.
+        Language code (not actively passed to RapidOCR which supports multi-lang automatically, but kept for signature compatibility).
 
     Returns
     -------
@@ -78,15 +78,15 @@ def check_ocr_consistency(
             "baseline_stats": {},
         }
 
-    # ── PaddleOCR availability guard ─────────────────────────────────────
-    if PaddleOCR is None:
-        return {"error": "paddleocr is not installed."}
+    # ── RapidOCR availability guard ─────────────────────────────────────
+    if RapidOCR is None:
+        return {"error": "rapidocr_onnxruntime is not installed."}
 
-    ocr = PaddleOCR(use_angle_cls=True, lang=lang, show_log=False)
-    result = ocr.ocr(image, cls=True)
+    engine = RapidOCR()
+    result, _ = engine(image)
 
-    # PaddleOCR can return [[…]] or [None]; normalise.
-    if not result or result[0] is None:
+    # RapidOCR returns a list of [bbox, text, conf] or None.
+    if not result:
         return {
             "ocr_anomaly_score": 0.0,
             "total_boxes": 0,
@@ -96,12 +96,12 @@ def check_ocr_consistency(
             "baseline_stats": {},
         }
 
-    detections = result[0]  # list of (bbox, (text, conf))
+    detections = result  # list of [bbox, text, conf]
 
     # ── collect metrics ────────────────────────────────────────────────
     records: List[Dict[str, Any]] = []
     for det in detections:
-        bbox, (text, _conf) = det
+        bbox, text, _conf = det
         char_count = len(text.strip())
         width = _bbox_width(bbox)
         baseline = _bbox_centre_y(bbox)
