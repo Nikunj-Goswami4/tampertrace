@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { Shield, Loader2, RefreshCcw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Shield, Loader2, RefreshCcw, Moon, Sun, Download } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { UploadZone } from './components/UploadZone';
 import { VerdictBadge } from './components/VerdictBadge';
 import { HeatmapOverlay } from './components/HeatmapOverlay';
@@ -12,8 +14,22 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<Record<string, unknown> | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Use user's system preference or default to true for "cinematic dark mode"
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const handleDownloadPdf = () => {
+    window.print();
+  };
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     if (selectedFile.type.startsWith('image/')) {
@@ -21,9 +37,9 @@ function App() {
     } else {
       setPreviewUrl(null);
     }
-    
+
     setAppState('uploading');
-    
+
     const formData = new FormData();
     formData.append('file', selectedFile);
 
@@ -51,8 +67,8 @@ function App() {
     } catch (error: unknown) {
       console.error(error);
       const msg = error instanceof Error ? error.message : 'An unknown error occurred.';
-      setErrorMessage(msg || 'Failed to analyze document. Make sure the server is running.');
-      setAppState('error');
+      toast.error(msg || 'Failed to analyze document. Make sure the server is running.');
+      setAppState('idle');
     }
   };
 
@@ -60,7 +76,6 @@ function App() {
     setAppState('idle');
     setFile(null);
     setAnalysisResult(null);
-    setErrorMessage(null);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -68,128 +83,167 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans transition-colors duration-300">
+      <Toaster position="bottom-right" toastOptions={{ className: 'dark:bg-slate-800 dark:text-white' }} />
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-blue-600">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-500">
             <Shield className="w-7 h-7" strokeWidth={2.5} />
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">TamperTrace</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors duration-300">TamperTrace</h1>
           </div>
-          {appState === 'results' && (
-            <button 
-              onClick={handleReset}
-              className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg"
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              <RefreshCcw className="w-4 h-4" />
-              New Analysis
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-          )}
+            {appState === 'results' && (
+              <>
+                <button
+                  onClick={handleDownloadPdf}
+                  className="hidden sm:flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2 rounded-lg"
+                >
+                  <Download className="w-4 h-4" />
+                  Download Report
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2 rounded-lg"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  New Analysis
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {appState === 'idle' && (
-          <div className="max-w-2xl mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="space-y-4">
-              <h2 className="text-4xl font-bold tracking-tight text-slate-900">
-                Verify Document Authenticity
-              </h2>
-              <p className="text-lg text-slate-600 max-w-xl mx-auto">
-                Upload identity cards, certificates, or invoices. Our AI ensemble analyzes pixels, metadata, and typography to detect manipulation.
-              </p>
-            </div>
-            
-            <UploadZone onFileSelect={handleFileSelect} isLoading={false} />
-          </div>
-        )}
-
-        {(appState === 'uploading' || appState === 'analyzing') && (
-          <div className="max-w-xl mx-auto text-center mt-20 animate-in fade-in duration-500">
-            <div className="relative inline-flex items-center justify-center">
-              <div className="absolute inset-0 bg-blue-100 rounded-full blur-xl opacity-50 animate-pulse" />
-              <div className="relative bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <Loader2 className="w-12 h-12 text-blue-500 animate-spin" strokeWidth={2} />
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12" ref={contentRef}>
+        <AnimatePresence mode="wait">
+          {appState === 'idle' && (
+            <motion.div
+              key="idle"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-2xl mx-auto text-center space-y-8"
+            >
+              <div className="space-y-4">
+                <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors duration-300">
+                  Verify Document Authenticity
+                </h2>
+                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto transition-colors duration-300">
+                  Upload identity cards, certificates, or invoices. Our AI ensemble analyzes pixels, metadata, and typography to detect manipulation.
+                </p>
               </div>
-            </div>
-            <h3 className="mt-8 text-xl font-semibold text-slate-900">
-              {appState === 'uploading' ? 'Uploading document...' : 'Running Forensic Analysis...'}
-            </h3>
-            <p className="mt-2 text-slate-500">
-              {appState === 'analyzing' && 'Fusing ELA, TruFor, Copy-Move, EXIF, and OCR signals.'}
-            </p>
-          </div>
-        )}
 
-        {appState === 'error' && (
-          <div className="max-w-xl mx-auto mt-12 animate-in fade-in slide-in-from-top-4">
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center">
-              <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-sm mb-6">
-                <Shield className="w-8 h-8 text-rose-500" strokeWidth={2} />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Analysis Failed</h3>
-              <p className="text-rose-700 mb-8">{errorMessage}</p>
-              <button 
-                onClick={handleReset}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors shadow-sm"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        )}
+              <UploadZone onFileSelect={handleFileSelect} isLoading={false} />
+            </motion.div>
+          )}
 
-        {appState === 'results' && analysisResult && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="flex flex-col md:flex-row gap-8 items-start">
-              {/* Left Column: Summary */}
-              <div className="w-full md:w-1/3 space-y-8 sticky top-24">
-                <VerdictBadge 
-                  verdict={(analysisResult as any).pages[0].verdict} 
-                  confidence={(analysisResult as any).pages[0].confidence_pct} 
+          {(appState === 'uploading' || appState === 'analyzing') && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.5 }}
+              className="max-w-xl mx-auto text-center mt-20"
+            >
+              {/* Immersive Scanning Laser Loading State */}
+              <div className="relative w-48 h-64 mx-auto bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 shadow-inner transition-colors duration-300">
+                {previewUrl ? (
+                  <img src={previewUrl} className="w-full h-full object-cover opacity-50 grayscale" alt="preview" />
+                ) : (
+                  <div className="w-full h-full p-4 flex flex-col gap-3">
+                    <div className="w-full h-4 bg-slate-300 dark:bg-slate-700 rounded animate-pulse"></div>
+                    <div className="w-3/4 h-4 bg-slate-300 dark:bg-slate-700 rounded animate-pulse"></div>
+                    <div className="w-full h-24 bg-slate-300 dark:bg-slate-700 rounded mt-auto animate-pulse"></div>
+                  </div>
+                )}
+                {/* Laser line */}
+                <motion.div
+                  className="absolute top-0 left-0 w-full h-1 bg-blue-500 shadow-[0_0_15px_3px_rgba(59,130,246,0.8)]"
+                  animate={{ top: ['0%', '100%', '0%'] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
                 />
-                
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                  <h3 className="font-semibold text-slate-900 mb-2 text-lg">Document Info</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-500">Filename</span>
-                      <span className="font-medium text-slate-900 truncate max-w-[150px]" title={String((analysisResult as any).filename)}>
-                        {String((analysisResult as any).filename)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-500">Pages</span>
-                      <span className="font-medium text-slate-900">{String((analysisResult as any).total_pages)}</span>
-                    </div>
-                    <div className="flex justify-between pb-1">
-                      <span className="text-slate-500">Fused Score</span>
-                      <span className="font-medium text-slate-900">{Number((analysisResult as any).pages[0].fused_score).toFixed(3)}</span>
+              </div>
+
+              <motion.h3
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="mt-8 text-xl font-semibold text-slate-900 dark:text-white transition-colors duration-300"
+              >
+                {appState === 'uploading' ? 'Uploading document...' : 'Running Forensic Analysis...'}
+              </motion.h3>
+              <p className="mt-2 text-slate-500 dark:text-slate-400 transition-colors duration-300">
+                {appState === 'analyzing' && 'Fusing ELA, TruFor, Copy-Move, EXIF, and OCR signals.'}
+              </p>
+            </motion.div>
+          )}
+
+          {appState === 'results' && analysisResult && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="space-y-12"
+            >
+              <div className="flex flex-col md:flex-row gap-8 items-start">
+                {/* Left Column: Summary */}
+                <div className="w-full md:w-1/3 space-y-8 sticky top-24">
+                  <VerdictBadge
+                    verdict={(analysisResult as any).pages[0].verdict}
+                    confidence={(analysisResult as any).pages[0].confidence_pct}
+                  />
+
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm transition-colors duration-300">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2 text-lg">Document Info</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <span className="text-slate-500 dark:text-slate-400">Filename</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-200 truncate max-w-[150px]" title={String((analysisResult as any).filename)}>
+                          {String((analysisResult as any).filename)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <span className="text-slate-500 dark:text-slate-400">Pages</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-200">{String((analysisResult as any).total_pages)}</span>
+                      </div>
+                      <div className="flex justify-between pb-1">
+                        <span className="text-slate-500 dark:text-slate-400">Fused Score</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-200">{Number((analysisResult as any).pages[0].fused_score).toFixed(3)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Column: Deep Dive */}
-              <div className="w-full md:w-2/3 space-y-12">
-                <HeatmapOverlay 
-                  originalImageSrc={previewUrl} 
-                  heatmapBase64={(analysisResult as any).pages[0].heatmap_base64}
-                  isPdf={file?.type === 'application/pdf'}
-                />
-                
-                <SignalBreakdown signals={(analysisResult as any).pages[0].signals} />
+                {/* Right Column: Deep Dive */}
+                <div className="w-full md:w-2/3 space-y-12">
+                  <HeatmapOverlay
+                    originalImageSrc={previewUrl}
+                    heatmapBase64={(analysisResult as any).pages[0].heatmap_base64}
+                    isPdf={file?.type === 'application/pdf'}
+                  />
+
+                  <SignalBreakdown signals={(analysisResult as any).pages[0].signals} />
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-auto">
+      <footer className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 mt-auto transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-          <p className="text-sm font-medium text-slate-500">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-500">
             Automated analysis, not a certified forensic or legal opinion.
           </p>
         </div>

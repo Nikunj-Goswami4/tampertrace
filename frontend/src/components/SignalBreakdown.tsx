@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, Activity, FileSearch, Copy, Camera, Type } from 'lucide-react';
+import * as Accordion from '@radix-ui/react-accordion';
+import { ChevronDown, Activity, FileSearch, Copy, Camera, Type } from 'lucide-react';
 import { cn } from '../utils';
 
 interface SignalResult {
@@ -23,69 +23,76 @@ const SIGNAL_META: Record<string, { label: string, icon: React.ElementType, desc
 export function SignalBreakdown({ signals }: SignalBreakdownProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-slate-900 mb-4">Forensic Signals</h3>
-      <div className="grid gap-3">
+      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 transition-colors duration-300">Forensic Signals</h3>
+      <Accordion.Root type="multiple" className="grid gap-3">
         {signals.map((sig) => (
           <SignalCard key={sig.name} signal={sig} />
         ))}
-      </div>
+      </Accordion.Root>
     </div>
   );
 }
 
 function SignalCard({ signal }: { signal: SignalResult }) {
-  const [expanded, setExpanded] = useState(false);
   const meta = SIGNAL_META[signal.name] || { label: signal.name, icon: Activity, desc: 'Analysis module' };
   const Icon = meta.icon;
-  
+
   // Score is 0 to 1
   const scorePct = Math.round(signal.score * 100);
-  
-  // High score means highly tampered. 
-  // Let's color code the score text.
+
   let scoreColor: string;
-  if (scorePct > 65) scoreColor = 'text-rose-600';
-  else if (scorePct < 30) scoreColor = 'text-emerald-600';
-  else scoreColor = 'text-amber-600';
+  let bgIconClass: string;
+  if (scorePct > 65) {
+    scoreColor = 'text-rose-600 dark:text-rose-400';
+    bgIconClass = 'bg-rose-50 border-rose-100 text-rose-500 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400';
+  } else if (scorePct < 30) {
+    scoreColor = 'text-emerald-600 dark:text-emerald-400';
+    bgIconClass = 'bg-emerald-50 border-emerald-100 text-emerald-500 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400';
+  } else {
+    scoreColor = 'text-amber-600 dark:text-amber-400';
+    bgIconClass = 'bg-slate-50 border-slate-100 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400';
+  }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow transition-shadow">
-      <button 
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 focus:outline-none focus-visible:bg-slate-50"
-      >
-        <div className="flex items-center gap-4">
-          <div className={cn("p-2 rounded-lg bg-slate-50 border border-slate-100", scorePct > 65 ? "bg-rose-50 border-rose-100 text-rose-500" : "text-slate-500")}>
-            <Icon className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <h4 className="font-semibold text-slate-900">{meta.label}</h4>
-            <p className="text-sm text-slate-500 hidden sm:block">{meta.desc}</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="text-right">
-            <div className={cn("text-lg font-bold", scoreColor)}>
-              {scorePct}%
+    <Accordion.Item
+      value={signal.name}
+      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow transition-all duration-300"
+    >
+      <Accordion.Header className="flex">
+        <Accordion.Trigger className="group flex-1 flex items-center justify-between p-4 focus:outline-none focus-visible:bg-slate-50 dark:focus-visible:bg-slate-800 transition-colors duration-300">
+          <div className="flex items-center gap-4">
+            <div className={cn("p-2 rounded-lg border transition-colors duration-300", bgIconClass)}>
+              <Icon className="w-5 h-5" />
             </div>
-            <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">Anomaly</div>
+            <div className="text-left">
+              <h4 className="font-semibold text-slate-900 dark:text-white transition-colors duration-300">{meta.label}</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block transition-colors duration-300">{meta.desc}</p>
+            </div>
           </div>
-          <div className="text-slate-400">
-            {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </div>
-        </div>
-      </button>
 
-      {expanded && (
-        <div className="p-4 pt-0 border-t border-slate-100 bg-slate-50/50">
-          <div className="mt-4 p-4 bg-slate-800 rounded-lg overflow-x-auto">
-            <pre className="text-xs text-slate-300 font-mono">
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <div className={cn("text-lg font-bold transition-colors duration-300", scoreColor)}>
+                {scorePct}%
+              </div>
+              <div className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider transition-colors duration-300">Anomaly</div>
+            </div>
+            <div className="text-slate-400 dark:text-slate-500 transition-transform duration-300 group-data-[state=open]:rotate-180">
+              <ChevronDown className="w-5 h-5" />
+            </div>
+          </div>
+        </Accordion.Trigger>
+      </Accordion.Header>
+
+      <Accordion.Content className="overflow-hidden data-[state=closed]:animate-slideUp data-[state=open]:animate-slideDown">
+        <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 transition-colors duration-300">
+          <div className="mt-4 p-4 bg-slate-800 dark:bg-black/40 rounded-lg overflow-x-auto border border-slate-700/50">
+            <pre className="text-xs text-slate-300 dark:text-slate-400 font-mono">
               {JSON.stringify(signal.details, null, 2)}
             </pre>
           </div>
         </div>
-      )}
-    </div>
+      </Accordion.Content>
+    </Accordion.Item>
   );
 }
