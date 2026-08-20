@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { UploadCloud, X } from 'lucide-react';
+import { UploadCloud } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '../utils';

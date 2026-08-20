@@ -15,6 +15,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.analyze import router as analyze_router
 from app.schemas.analysis import HealthResponse
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
 __version__ = "0.1.0"
 
 logging.basicConfig(
@@ -56,3 +60,18 @@ app.include_router(analyze_router)
 )
 async def healthz() -> HealthResponse:
     return HealthResponse(status="ok", version=__version__)
+
+
+# ── Frontend Serving ───────────────────────────────────────────────────
+# Serve the static files from the React build folder
+frontend_dist = os.path.join(os.path.dirname(__file__), "../../frontend/dist")
+
+if os.path.exists(frontend_dist):
+    app.mount("/assets", StaticFiles(directory=f"{frontend_dist}/assets"), name="assets")
+    
+    @app.get("/{catchall:path}")
+    async def serve_frontend(catchall: str):
+        # Route all non-API traffic to the React index.html
+        if catchall.startswith("api/"):
+            return {"error": "API route not found"}
+        return FileResponse(f"{frontend_dist}/index.html")

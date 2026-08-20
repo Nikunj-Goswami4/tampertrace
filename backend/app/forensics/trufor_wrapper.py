@@ -21,7 +21,10 @@ from typing import Any, Dict, Optional
 import cv2
 import numpy as np
 import torch
+import torchvision
 from torch.nn import functional as F
+
+import spaces
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +94,11 @@ def _ndarray_to_b64_png(arr: np.ndarray) -> str:
     return base64.b64encode(buf).decode("ascii")
 
 
+@spaces.GPU
 def run_trufor(
     image: np.ndarray,
-    device: str = "cpu",
+    device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    # device: str = "cpu",
 ) -> Dict[str, Any]:
     """Run TruFor inference on *image*.
 
@@ -119,6 +124,19 @@ def run_trufor(
 
     # ── prepare tensor (same as data_core.myDataset) ───────────────────
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Scale down if too large to avoid OOM on GPUs with limited memory
+    orig_h, orig_w = rgb.shape[:2]
+    max_size = 768
+    if max(orig_h, orig_w) > max_size:
+        scale = max_size / max(orig_h, orig_w)
+        new_w = int(orig_w * scale)
+        new_h = int(orig_h * scale)
+        # Ensure dimensions are multiples of 32
+        new_w = max(32, (new_w // 32) * 32)
+        new_h = max(32, (new_h // 32) * 32)
+        rgb = cv2.resize(rgb, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
     tensor = (
         torch.tensor(rgb.transpose(2, 0, 1), dtype=torch.float32)
         .unsqueeze(0)
@@ -134,12 +152,16 @@ def run_trufor(
     # ── post-process: anomaly heatmap ──────────────────────────────────
     pred = torch.squeeze(pred, 0)
     heatmap = F.softmax(pred, dim=0)[1].cpu().numpy()
+    if heatmap.shape != (orig_h, orig_w):
+        heatmap = cv2.resize(heatmap, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
 
     # ── post-process: reliability map ──────────────────────────────────
     reliability: Optional[np.ndarray] = None
     if conf is not None:
         conf = torch.squeeze(conf, 0)
         reliability = torch.sigmoid(conf)[0].cpu().numpy()
+        if reliability.shape != (orig_h, orig_w):
+            reliability = cv2.resize(reliability, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
 
     # ── post-process: integrity score ──────────────────────────────────
     integrity_score = 0.0

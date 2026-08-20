@@ -20,7 +20,7 @@ const SIGNAL_META: Record<string, { label: string, icon: React.ElementType, desc
   ocr: { label: 'OCR Typography', icon: Type, desc: 'Text bounding box inconsistencies.' },
 };
 
-const truncateLongStrings = (key: string, value: unknown) => {
+const truncateLongStrings = (_key: string, value: unknown) => {
   if (typeof value === 'string' && value.length > 200) {
     return `<string omitted for brevity (${value.length} characters)>`;
   }

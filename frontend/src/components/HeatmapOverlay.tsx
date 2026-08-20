@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Layers, GripVertical } from 'lucide-react';
 import { cn } from '../utils';
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Shield, Loader2, RefreshCcw, Moon, Sun, Download } from 'lucide-react';
+import { Shield, RefreshCcw, Moon, Sun, Download } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadZone } from './components/UploadZone';

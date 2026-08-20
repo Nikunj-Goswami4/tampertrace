@@ -19,7 +19,10 @@ try:
 except ImportError:  # pragma: no cover
     RapidOCR = None  # type: ignore[assignment,misc]
 
-
+# ----------------
+# Initialize ONNX engine globally so it stays in RAM
+_OCR_ENGINE = RapidOCR()
+# ----------------
 
 def _iqr_bounds(values: np.ndarray) -> tuple:
     """Return (Q1, Q3, lower_fence, upper_fence) using the 1.5×IQR rule."""
@@ -67,6 +70,14 @@ def check_ocr_consistency(
         ``spacing_stats``     – descriptive statistics for char spacing.
         ``baseline_stats``    – descriptive statistics for baseline height.
     """
+
+    
+    # ---------------------------------------------------------
+    # Use the global engine instead of recreating it
+    result, _ = _OCR_ENGINE(image)
+    # ---------------------------------------------------------
+
+
     # ── guard ──────────────────────────────────────────────────────────
     if image is None or not isinstance(image, np.ndarray) or image.size == 0:
         return {

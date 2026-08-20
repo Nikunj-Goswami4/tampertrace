@@ -1,0 +1,20 @@
+# --extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi
+uvicorn
+torch
+torchvision
+opencv-python-headless
+Pillow
+PyMuPDF
+rapidocr-onnxruntime
+pydantic
+pydantic-settings
+scikit-learn
+numpy
+piexif
+yacs
+pytest
+python-multipart
+gradio
+spaces
